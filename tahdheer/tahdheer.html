@@ -15,8 +15,7 @@
   <main class="container">
     <header class="header">
       <div class="brand">
-        <img src="logo_s&r.png" alt="شعار سنام الأمن" />
-       
+        <img src="assets/logo_s&r.png" alt="شعار سنام الأمن" />
       </div>
       <div class="badge">تسجيل الحضور والانصراف</div>
     </header>
@@ -28,12 +27,11 @@
             <label for="location">الموقع</label>
             <select id="location" aria-describedby="location-msg" required>
               <option value="" selected disabled>اختر الموقع</option>
-              <option value=" موقع المقر الرئيسي"> موقع المقر الرئيسي</option>
-              <option value=" موقع البوابه الرئيسية"> موقع البوابه الرئيسية</option>
-             <option value=" موقع مركز 20 كامل"> موقع مركز 20 كامل</option>
-           
+              <option value="موقع المقر الرئيسي ">موقع المقر الرئيسي</option>
+              <option value=" موقع البوابه الرئيسية"> موقع البوابه الرئيسية</option>
+              <option value="موقع مركز 20 كامل">موقع مركز 20 كامل</option>
+              <option value="Amany">Amany</option>
             </select>
-
             <div id="location-msg" class="msg" role="status" aria-live="polite"></div>
           </div>
 
@@ -52,10 +50,9 @@
             <label for="workType">نوع الدوام</label>
             <select id="workType">
               <option value="" selected disabled>اختر نوع الدوام</option>
-                <option value="دورية ثابته">دورية ثابته</option>
+              <option value="دورية ثابته">دورية ثابته</option>
               <option value="دورية متحركة">دورية متحركة</option>
               <option value="تغطية">تغطية</option>
-          
             </select>
           </div>
 
@@ -65,23 +62,16 @@
             <div id="fullName-msg" class="msg" role="status" aria-live="polite"></div>
           </div>
 
-
           <div class="form-group third">
             <label for="nationalId">رقم الهوية</label>
-<input id="nationalId" type="text"
-  placeholder="10 أرقام" maxlength="10"
-  inputmode="numeric" pattern="\d*" dir="ltr"
-  aria-describedby="nationalId-msg" />        
-  <div id="nationalId-msg" class="msg" role="status" aria-live="polite"></div>
+            <input id="nationalId" type="text" placeholder="10 أرقام" maxlength="10" inputmode="numeric" pattern="\d*" dir="ltr" aria-describedby="nationalId-msg" />
+            <div id="nationalId-msg" class="msg" role="status" aria-live="polite"></div>
           </div>
 
           <div class="form-group third">
             <label for="phone">رقم الجوال</label>
-<input id="phone" type="tel"
-  placeholder="05XXXXXXXX" maxlength="10"
-  inputmode="tel" dir="ltr"
-  aria-describedby="phone-msg" />
-  <div id="phone-msg" class="msg" role="status" aria-live="polite"></div>
+            <input id="phone" type="tel" placeholder="05XXXXXXXX" maxlength="10" inputmode="tel" dir="ltr" aria-describedby="phone-msg" />
+            <div id="phone-msg" class="msg" role="status" aria-live="polite"></div>
           </div>
 
           <div class="form-group" style="grid-column:span 12">
@@ -109,12 +99,11 @@
             <button type="button" class="btn outline" id="btnEarlyCancel">إلغاء</button>
           </div>
         </div>
-
-       
       </form>
     </section>
   </main>
 
+  <!-- تذكير الانصراف -->
   <div id="reminderBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="modal">
       <header>
@@ -124,6 +113,19 @@
       <div class="body">
         <p>نذكرك بتسجيل وقت <strong>الانصراف</strong> قبل مغادرتك لضمان اكتمال سجلات الحضور والانصراف.</p>
         <p>⏱ اهتمامك بالتسجيل يعكس التزامك. شكرًا لتعاونك 🌟</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة تحذير عدم وجود حضور -->
+  <div id="noCheckinBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal">
+      <header>
+        <strong>تعذّر إكمال العملية</strong>
+        <button class="close" id="noCheckinClose" aria-label="إغلاق">×</button>
+      </header>
+      <div class="body">
+        <p id="noCheckinMsg">لم يمكن إكمال العملية لعدم تسجيلك الحضور.</p>
       </div>
     </div>
   </div>
