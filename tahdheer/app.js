@@ -1,4 +1,4 @@
-// ===== app.js (FINAL, with checkout-guard modal applied to checkout & early checkout) =====
+// ===== app.js (FINAL) =====
 const $ = (s) => document.querySelector(s);
 const byId = (id) => document.getElementById(id);
 const fields = {
@@ -54,41 +54,14 @@ function setBusy(el, busy=true) {
   el.classList.toggle('is-busy', !!busy);
 }
 
-/* === حضور محلي === */
-const CHECKIN_FLAG_KEY = 'sanam_checked_in';
-function isCheckedIn() { try { return localStorage.getItem(CHECKIN_FLAG_KEY) === 'true'; } catch { return false; } }
-function markCheckedIn() { try { localStorage.setItem(CHECKIN_FLAG_KEY, 'true'); } catch {} }
-function markCheckedOut() { try { localStorage.setItem(CHECKIN_FLAG_KEY, 'false'); } catch {} }
-
-/* === نافذة عدم وجود حضور === */
-const noCheckinBackdrop = byId('noCheckinBackdrop');
-const noCheckinClose    = byId('noCheckinClose');
-const noCheckinMsg      = byId('noCheckinMsg');
-function showNoCheckinModal(msg = 'لم يمكن إكمال العملية لعدم تسجيلك الحضور.') {
-  if (noCheckinMsg) noCheckinMsg.textContent = msg;
-  if (noCheckinBackdrop) {
-    noCheckinBackdrop.style.display = 'flex';
-    noCheckinBackdrop.setAttribute('aria-hidden', 'false');
-  }
-}
-function hideNoCheckinModal() {
-  if (noCheckinBackdrop) {
-    noCheckinBackdrop.style.display = 'none';
-    noCheckinBackdrop.setAttribute('aria-hidden', 'true');
-  }
-}
-if (noCheckinClose) noCheckinClose.addEventListener('click', hideNoCheckinModal);
-if (noCheckinBackdrop) {
-  noCheckinBackdrop.addEventListener('click', (e) => { if (e.target === noCheckinBackdrop) hideNoCheckinModal(); });
-}
-
-/* === Validators & inputs === */
+/* ===================== Arabic name normalization ===================== */
 function normalizeArabicNameLive(str) {
   if (!str) return '';
   str = str.replace(/[\u0640\u0610-\u061A\u064B-\u065F\u06D6-\u06ED]/g, '');
   str = str.replace(/[\u0622\u0623\u0625\u0671]/g, '\u0627').replace(/[\u0649\u06CC]/g, '\u064A');
   str = str.replace(/[\s\u00A0]+/g, ' ');
   str = str.replace(/[^\u0600-\u06FF ]/g, '');
+
   const hasTrailingSpace = / $/.test(str);
   str = str.replace(/ {2,}/g, ' ');
   if (str.startsWith(' ')) str = str.replace(/^ +/, '');
@@ -105,12 +78,19 @@ function normalizeArabicNameFinal(str) {
     .replace(/ {2,}/g, ' ')
     .trim();
 }
+
+/* ===================== Validators ===================== */
 function validateFullName() {
   const i = fields.fullName;
   i.value = normalizeArabicNameFinal(i.value);
   const ok = /^[\u0600-\u06FF]+( [\u0600-\u06FF]+){3}$/.test(i.value);
   markValid(i, ok);
-  setMsg(msgs.fullName, ok ? '✅ الاسم صحيح (أربع كلمات بالعربية).' : 'الرجاء كتابة الاسم الرباعي بالعربية فقط (أربع كلمات).', ok ? 'success' : 'error');
+  setMsg(
+    msgs.fullName,
+    ok ? '✅ الاسم صحيح (أربع كلمات بالعربية).'
+       : 'الرجاء كتابة الاسم الرباعي بالعربية فقط (أربع كلمات).',
+    ok ? 'success' : 'error'
+  );
   return ok;
 }
 function validateNationalId() {
@@ -141,15 +121,20 @@ function validateShift() {
   setMsg(msgs.shift, ok ? '' : 'الرجاء اختيار الوردية.');
   return ok;
 }
-function formValid() { return [validateLocation(), validateShift(), validateFullName(), validateNationalId(), validatePhone()].every(Boolean); }
+function formValid() {
+  return [validateLocation(), validateShift(), validateFullName(), validateNationalId(), validatePhone()].every(Boolean);
+}
 
-/* === Time utils === */
+/* ===================== Time utils ===================== */
+// دقائق الآن بتوقيت الرياض (حساب داخلي 24h لكي يبقى دقيق)
 function riyadhMinutesNow() {
   const p = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Riyadh', hourCycle: 'h23', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date());
   const h = Number(p.find(x => x.type === 'hour').value);
   const m = Number(p.find(x => x.type === 'minute').value);
   return h * 60 + m;
 }
+
+// تحويل 12h مع AM/PM أو ص/م إلى دقائق 0..1439
 function hhmm12ToMinutes(hh, mm, ap) {
   let h = Number(hh), m = Number(mm);
   const ampm = String(ap || '').trim().toLowerCase();
@@ -159,22 +144,33 @@ function hhmm12ToMinutes(hh, mm, ap) {
   if (isAM && h === 12) h = 0;
   return (h % 24) * 60 + m;
 }
+
+// يدعم:
+// "8:00 AM-4:00 PM" / "8:00 ص - 4:00 م" / "08:00-16:00" / "8:00 AM إلى 4:00 PM" / "8:00 am to 4:00 pm"
 function parseShiftRange(v) {
   v = String(v || '').trim();
+
+  // 12h مع AM/PM أو ص/م ويقبل الفواصل: -, – , إلى , to
   const re12 = /^\s*(\d{1,2}):(\d{2})\s*(AM|PM|am|pm|[صم])\s*(?:[-–]|(?:\s*(?:إلى|to)\s*))\s*(\d{1,2}):(\d{2})\s*(AM|PM|am|pm|[صم])\s*$/;
   const m12 = v.match(re12);
   if (m12) {
     const [, sh, sm, sap, eh, em, eap] = m12;
     return { start: hhmm12ToMinutes(sh, sm, sap), end: hhmm12ToMinutes(eh, em, eap) };
   }
+
+  // 24h تقليدي ويقبل - أو –
   const re24 = /^\s*(\d{1,2}):(\d{2})\s*[-–]\s*(\d{1,2}):(\d{2})\s*$/;
   const m24 = v.match(re24);
   if (m24) {
     const [, sh, sm, eh, em] = m24.map(Number);
     return { start: sh * 60 + sm, end: eh * 60 + em };
   }
+
+  // فشل
   return { start: 0, end: 0 };
 }
+
+// عرض وقت 12h (للاستخدام في الرسائل عند الحاجة)
 function minutesTo12h(mins) {
   mins = ((mins % 1440) + 1440) % 1440;
   let h = Math.floor(mins / 60);
@@ -186,21 +182,31 @@ function minutesTo12h(mins) {
 }
 
 const EARLY_ALLOW_MIN = 5, ONTIME_GRACE_MIN = 5;
+
 function inWindow(now, start, end) {
   const allowedStart = (start - EARLY_ALLOW_MIN + 1440) % 1440;
   if (end >= start) {
-    if (allowedStart <= start) return now >= allowedStart && now < end;
-    else return (now >= allowedStart && now < 1440) || (now >= 0 && now < end);
+    if (allowedStart <= start) {
+      return now >= allowedStart && now < end;
+    } else {
+      return (now >= allowedStart && now < 1440) || (now >= 0 && now < end);
+    }
   } else {
-    if (allowedStart <= start) return (now >= allowedStart && now < 1440) || (now >= 0 && now < end);
-    else return (now >= allowedStart || now < end);
+    if (allowedStart <= start) {
+      return (now >= allowedStart && now < 1440) || (now >= 0 && now < end);
+    } else {
+      return (now >= allowedStart || now < end);
+    }
   }
 }
+
+// حالات بالعربي
 function shiftStatus(now, start) {
   if (now < start) return { type: 'مبكر', minutes: start - now };
   if (now <= start + ONTIME_GRACE_MIN) return { type: 'في الوقت', minutes: now - start };
   return { type: 'متأخر', minutes: now - start };
 }
+
 function updateShiftState() {
   const v = fields.shift.value;
   if (!v) { setMsg(msgs.shift, 'الرجاء اختيار الوردية.'); return false; }
@@ -212,14 +218,20 @@ function updateShiftState() {
   }
   const st = shiftStatus(now, start);
   let t = '', kind = 'success';
-  if (st.type === 'مبكر') { t = `⏳ مبكر بـ ${st.minutes} دقيقة (يُسمح حتى ${EARLY_ALLOW_MIN}).`; kind = st.minutes <= EARLY_ALLOW_MIN ? 'success' : 'error'; }
-  else if (st.type === 'في الوقت') { t = st.minutes === 0 ? '✅ على الوقت تمامًا.' : `✅ ضمن مهلة ${ONTIME_GRACE_MIN} دقائق.`; }
-  else { t = `⏱ متأخر بـ ${st.minutes} دقيقة.`; kind = 'error'; }
+  if (st.type === 'مبكر') {
+    t = `⏳ مبكر بـ ${st.minutes} دقيقة (يُسمح حتى ${EARLY_ALLOW_MIN}).`;
+    kind = st.minutes <= EARLY_ALLOW_MIN ? 'success' : 'error';
+  } else if (st.type === 'في الوقت') {
+    t = st.minutes === 0 ? '✅ على الوقت تمامًا.' : `✅ ضمن مهلة ${ONTIME_GRACE_MIN} دقائق.`;
+  } else {
+    t = `⏱ متأخر بـ ${st.minutes} دقيقة.`;
+    kind = 'error';
+  }
   setMsg(msgs.shift, t, kind);
   return true;
 }
 
-/* === Live input + events === */
+/* ===================== Live input + events ===================== */
 fields.fullName.addEventListener('input', () => {
   const el = fields.fullName;
   const before = el.value;
@@ -233,21 +245,36 @@ fields.fullName.addEventListener('input', () => {
   el.classList.remove('invalid', 'valid');
 });
 fields.fullName.addEventListener('blur', validateFullName);
+
 fields.nationalId.addEventListener('input', validateNationalId);
 fields.phone.addEventListener('input', validatePhone);
 fields.location.addEventListener('change', validateLocation);
 fields.shift.addEventListener('change', () => { validateShift(); updateShiftState(); });
 setInterval(() => { if (fields.shift.value) updateShiftState(); }, 60 * 1000);
 
-/* === Geofence === */
+/* ===================== Geofence ===================== */
 const LOCATIONS = {
-  "موقع المقر الرئيسي ": { lat: 21.36069283475989, lon: 39.987057273725085, radius: 200 },
-  " موقع البوابه الرئيسية": { lat: 21.367388774623464, lon: 39.97669691790373, radius: 110 },
-  "موقع مركز 20 كامل":    { lat: 21.364095855640638,  lon: 39.975008731396414, radius: 200 }, 
-  "Amany": { lat: 21.362401699505586,  lon: 39.819594631396775,   radius: 100 }
+  "موقع المقر الرئيسي ": { lat: 21.36069283475989, lon: 39.987057273725085, radius: 200 },
+  " موقع البوابه الرئيسية": { lat: 21.367388774623464, lon: 39.97669691790373, radius: 110 },
+  "موقع مركز 20 كامل":    { lat: 21.364095855640638,  lon: 39.975008731396414, radius: 200 }, 
+ // "مكتب":  { lat: 21.353332012296036,  lon: 39.83317700978527,   radius: 100 },
+// "Mohammed": { lat: 26.364490945277293,  lon: 43.948546445511234,   radius: 50 },
+ "Amany": { lat: 21.362401699505586,  lon: 39.819594631396775,   radius: 100 },
 };
-function normKey(s){ return String(s || '').replace(/\u00A0/g, ' ').replace(/\s+/g, ' ').trim(); }
-const LOC_MAP = Object.fromEntries(Object.entries(LOCATIONS).map(([k, v]) => [normKey(k), v]));
+
+// === Normalization helpers (added) ===
+function normKey(s){
+  return String(s || '')
+    .replace(/\u00A0/g, ' ')   // NBSP -> normal space
+    .replace(/\s+/g, ' ')      // collapse multiple spaces
+    .trim();                    // trim edges
+}
+
+const LOC_MAP = Object.fromEntries(
+  Object.entries(LOCATIONS).map(([k, v]) => [normKey(k), v])
+);
+// === End helpers ===
+;
 function toRad(d) { return d * Math.PI / 180; }
 function haversineMeters(a, b, c, d) {
   const R = 6371000;
@@ -267,6 +294,8 @@ function getPosition() {
   });
 }
 async function validateGeofence() {
+  // إن كنت تختبر من ملف محلي فقط:
+  // if (BYPASS_FOR_LOCAL_FILE) { setMsg(msgs.location, '🔧 وضع اختبار محلي: تم تخطي GPS (يعمل كامل عبر HTTPS).', 'success'); return true; }
   const key = fields.location.value;
   if (!key) { setMsg(msgs.location, 'الرجاء اختيار الموقع.'); return false; }
   const spec = LOC_MAP[normKey(key)];
@@ -291,63 +320,91 @@ async function validateGeofence() {
   }
 }
 
-/* === 8 hours throttle === */
+/* ===================== 8 hours throttle (منفصلة لكل نوع عملية ولكل رقم هوية) ===================== */
 const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
-const ACTION = { CHECKIN: 'checkin', CHECKOUT: 'checkout', EARLY: 'early' };
+
+const ACTION = {
+  CHECKIN: 'checkin',
+  CHECKOUT: 'checkout',
+  EARLY: 'early'
+};
+
 function lastActionKey(action) {
   const nid = (fields.nationalId.value || 'unknown').trim() || 'unknown';
   const a = action || 'any';
   return `sanam_last_${a}_${nid}`;
 }
+
 function canDoAction(action, windowMs = EIGHT_HOURS_MS) {
   try {
     const key = lastActionKey(action);
     const t = Number(localStorage.getItem(key) || '0');
     if (!t) return true;
     return (Date.now() - t) >= windowMs;
-  } catch (_) { return true; }
+  } catch (_) {
+    return true;
+  }
 }
-function stampAction(action) { try { localStorage.setItem(lastActionKey(action), String(Date.now())); } catch {} }
 
-/* === تذكير الانصراف === */
+function stampAction(action) {
+  try {
+    localStorage.setItem(lastActionKey(action), String(Date.now()));
+  } catch (_) {}
+}
+
+/* ===================== Dialog (تذكير) ===================== */
 const reminderBackdrop = byId('reminderBackdrop');
 const reminderClose = byId('reminderClose');
 function showReminder() { if (reminderBackdrop) { reminderBackdrop.style.display = 'flex'; reminderBackdrop.setAttribute('aria-hidden', 'false'); } }
 function hideReminder() { if (reminderBackdrop) { reminderBackdrop.style.display = 'none'; reminderBackdrop.setAttribute('aria-hidden', 'true'); } }
 if (reminderClose) { reminderClose.addEventListener('click', hideReminder); }
-if (reminderBackdrop) { reminderBackdrop.addEventListener('click', (e) => { if (e.target === reminderBackdrop) hideReminder(); }); }
+if (reminderBackdrop) {
+  reminderBackdrop.addEventListener('click', (e) => { if (e.target === reminderBackdrop) hideReminder(); });
+}
 
-/* === Early checkout panel (with presence guard) === */
-const earlyPanel  = byId('earlyPanel');
+/* ===================== Early checkout panel ===================== */
+const earlyPanel = byId('earlyPanel');
 const earlyReason = byId('earlyReason');
-const earlyPhoto  = byId('earlyPhoto');
+const earlyPhoto = byId('earlyPhoto');
 
 if (btnEarlyCheckout) {
   btnEarlyCheckout.addEventListener('click', () => {
-    if (!isCheckedIn()) { showNoCheckinModal('لم يمكن إكمال العملية لعدم تسجيلك الحضور.'); return; }
-    if (earlyPanel) { earlyPanel.style.display = 'block'; earlyPanel.setAttribute('aria-hidden', 'false'); }
+    if (earlyPanel) {
+      earlyPanel.style.display = 'block';
+      earlyPanel.setAttribute('aria-hidden', 'false');
+    }
   });
 }
 if (btnEarlyCancel) {
   btnEarlyCancel.addEventListener('click', () => {
-    if (earlyPanel) { earlyPanel.style.display = 'none'; earlyPanel.setAttribute('aria-hidden', 'true'); }
+    if (earlyPanel) {
+      earlyPanel.style.display = 'none';
+      earlyPanel.setAttribute('aria-hidden', 'true');
+    }
     if (earlyReason) earlyReason.value = '';
-    if (earlyPhoto)  earlyPhoto.value  = '';
+    if (earlyPhoto) earlyPhoto.value = '';
   });
 }
 
-/* === Checkout window (1 hour after end) === */
+/* ===================== Checkout window (ساعة بعد النهاية) ===================== */
 function minutesDiffWrap(a, b) { return (a - b + 1440) % 1440; }
 function withinCheckoutWindow(now, start, end) {
   const diff = minutesDiffWrap(now, end);
   return diff >= 0 && diff < 60;
 }
 
-/* === Send === */
+/* ===================== Send ===================== */
 async function sendRecord(actionArabic, extra = {}) {
-  if (!WEB_APP_URL) { alert('لم يتم ضبط رابط Web App.'); throw new Error('WEB_APP_URL missing'); }
+  if (!WEB_APP_URL) { 
+    alert('لم يتم ضبط رابط Web App.'); 
+    throw new Error('WEB_APP_URL missing'); 
+  }
+
   let imageBase64 = '';
-  if (extra.file) imageBase64 = await fileToDataURL(extra.file);
+  if (extra.file) {
+    imageBase64 = await fileToDataURL(extra.file);
+  }
+
   const fd = new FormData();
   fd.append('action', actionArabic);
   fd.append('location',   fields.location.value || '');
@@ -360,11 +417,13 @@ async function sendRecord(actionArabic, extra = {}) {
   fd.append('minutes',    (extra.minutes != null ? String(extra.minutes) : ''));
   fd.append('reason',     extra.reason || '');
   fd.append('imageBase64', imageBase64);
+
+  // لا تستخدم CORS ولا تقرأ الرد (opaque response)
   await fetch(WEB_APP_URL, { method: 'POST', mode: 'no-cors', body: fd });
   return { ok: true };
 }
 
-/* === Actions === */
+/* ===================== Actions (تعطيل الأزرار أثناء التنفيذ) ===================== */
 if (btnCheckIn) btnCheckIn.addEventListener('click', async () => {
   if (!formValid()) return alert('⚠️ تأكد من تعبئة الحقول بشكل صحيح.');
   if (!canDoAction(ACTION.CHECKIN)) return alert('لا يمكنك تسجيل حضور جديد قبل مرور 8 ساعات من آخر حضور.');
@@ -374,10 +433,9 @@ if (btnCheckIn) btnCheckIn.addEventListener('click', async () => {
     const geoOK = await validateGeofence(); if (!geoOK) return;
     const { start } = parseShiftRange(fields.shift.value);
     const now = riyadhMinutesNow();
-    const st = shiftStatus(now, start);
+    const st = shiftStatus(now, start); // عربي
     await sendRecord('تسجيل حضور', { status: st.type, minutes: st.minutes });
-    stampAction(ACTION.CHECKIN);
-    markCheckedIn();
+    stampAction(ACTION.CHECKIN); 
     showReminder();
     alert('✅ تم تسجيل الحضور بنجاح.');
   } catch (err) {
@@ -390,16 +448,17 @@ if (btnCheckIn) btnCheckIn.addEventListener('click', async () => {
 if (btnCheckOut) btnCheckOut.addEventListener('click', async () => {
   if (!formValid()) return alert('⚠️ تأكد من تعبئة الحقول بشكل صحيح.');
   if (!canDoAction(ACTION.CHECKOUT)) return alert('لا يمكنك تسجيل انصراف جديد قبل مرور 8 ساعات من آخر انصراف.');
-  if (!isCheckedIn()) { showNoCheckinModal('لم يمكن إكمال العملية لعدم تسجيلك الحضور.'); return; }
   setBusy(btnCheckOut, true);
   try {
     const geoOK = await validateGeofence(); if (!geoOK) return;
     const { start, end } = parseShiftRange(fields.shift.value);
     const now = riyadhMinutesNow();
-    if (!withinCheckoutWindow(now, start, end)) { alert('❌ تسجيل الانصراف متاح فقط خلال الساعة الأولى بعد نهاية الوردية.'); return; }
+    if (!withinCheckoutWindow(now, start, end)) {
+      alert('❌ تسجيل الانصراف متاح فقط خلال الساعة الأولى بعد نهاية الوردية.');
+      return;
+    }
     await sendRecord('تسجيل انصراف', {});
     stampAction(ACTION.CHECKOUT);
-    markCheckedOut();
     alert('✅ تم تسجيل الانصراف بنجاح.');
   } catch (err) {
     alert('حدث خطأ أثناء التسجيل: ' + err.message);
@@ -411,7 +470,6 @@ if (btnCheckOut) btnCheckOut.addEventListener('click', async () => {
 if (btnEarlyConfirm) btnEarlyConfirm.addEventListener('click', async () => {
   if (!formValid()) return alert('⚠️ تأكد من تعبئة الحقول بشكل صحيح.');
   if (!canDoAction(ACTION.EARLY)) return alert('لا يمكنك تسجيل انصراف مبكر جديد قبل مرور 8 ساعات من آخر انصراف مبكر.');
-  if (!isCheckedIn()) { showNoCheckinModal('لم يمكن إكمال العملية لعدم تسجيلك الحضور.'); if (earlyPanel) { earlyPanel.style.display = 'block'; earlyPanel.setAttribute('aria-hidden', 'false'); } return; }
   setBusy(btnEarlyConfirm, true);
   try {
     const geoOK = await validateGeofence(); if (!geoOK) return;
@@ -420,9 +478,9 @@ if (btnEarlyConfirm) btnEarlyConfirm.addEventListener('click', async () => {
     await sendRecord('انصراف مبكر', { reason, file, status: 'مبكر' });
     stampAction(ACTION.EARLY);
     alert('✅ تم تسجيل الانصراف المبكر.');
-    if (earlyPanel) { earlyPanel.style.display = 'none'; earlyPanel.setAttribute('aria-hidden','true'); }
+    if (earlyPanel) { earlyPanel.style.display = 'none'; }
     if (earlyReason) earlyReason.value = '';
-    if (earlyPhoto)  earlyPhoto.value  = '';
+    if (earlyPhoto) earlyPhoto.value = '';
   } catch (err) {
     alert('حدث خطأ أثناء التسجيل: ' + err.message);
   } finally {
