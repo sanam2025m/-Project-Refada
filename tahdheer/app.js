@@ -260,21 +260,8 @@ const LOCATIONS = {
  // "مكتب":  { lat: 21.353332012296036,  lon: 39.83317700978527,   radius: 100 },
 // "Mohammed": { lat: 26.364490945277293,  lon: 43.948546445511234,   radius: 50 },
  "Amany": { lat: 21.362401699505586,  lon: 39.819594631396775,   radius: 100 },
+
 };
-
-// === Normalization helpers (added) ===
-function normKey(s){
-  return String(s || '')
-    .replace(/\u00A0/g, ' ')   // NBSP -> normal space
-    .replace(/\s+/g, ' ')      // collapse multiple spaces
-    .trim();                    // trim edges
-}
-
-const LOC_MAP = Object.fromEntries(
-  Object.entries(LOCATIONS).map(([k, v]) => [normKey(k), v])
-);
-// === End helpers ===
-;
 function toRad(d) { return d * Math.PI / 180; }
 function haversineMeters(a, b, c, d) {
   const R = 6371000;
@@ -298,7 +285,7 @@ async function validateGeofence() {
   // if (BYPASS_FOR_LOCAL_FILE) { setMsg(msgs.location, '🔧 وضع اختبار محلي: تم تخطي GPS (يعمل كامل عبر HTTPS).', 'success'); return true; }
   const key = fields.location.value;
   if (!key) { setMsg(msgs.location, 'الرجاء اختيار الموقع.'); return false; }
-  const spec = LOC_MAP[normKey(key)];
+  const spec = LOCATIONS[key];
   if (!spec) { setMsg(msgs.location, 'الموقع غير معروف في النظام.'); return false; }
   try {
     const pos = await getPosition();
