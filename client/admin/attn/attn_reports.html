@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>تقرير سنام الأمن — ملخص الحضور والانصراف</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+:root{
+  --brand:#4d2c12; --ink:#000; --muted:#ccc; --paper:#fff; --field:#fdf4e8;
+  --page-padding:20mm; --rows-per-page:40;
+}
+
+html,body{
+  margin:0; padding:0; height:100%;
+  background:var(--paper); color:var(--ink);
+  font-family:'Cairo',sans-serif;
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  -webkit-print-color-adjust:exact; print-color-adjust:exact;
+}
+
+.app{min-height:100vh; display:flex; flex-direction:column;}
+.toolbar{
+  position:sticky; top:0; z-index:1000;
+  display:flex; justify-content:center; gap:12px; padding:12px;
+  background:linear-gradient(to bottom, rgba(0,0,0,.04), rgba(0,0,0,0));
+  backdrop-filter:blur(4px);
+}
+.toolbar button{
+  padding:10px 20px; font-size:16px; background:var(--brand); color:#fff;
+  border:0; border-radius:10px; cursor:pointer;
+}
+
+.content{width:min(1200px,100%); margin:0 auto; padding:16px; box-sizing:border-box;}
+.card{background:#fff; border:1px solid var(--muted); border-radius:14px; box-shadow:0 4px 20px rgba(0,0,0,.04); padding:18px; margin-bottom:16px;}
+.header{display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #eee; padding-bottom:10px; margin-bottom:10px;}
+.header img{height:90px;}
+h1,h2{text-align:center; color:var(--brand); margin:8px 0;}
+.input-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px 16px; align-items:end;}
+.input-line label{font-weight:700; display:block; margin-bottom:4px;}
+
+/* fields */
+input[type="text"],input[type="date"]{
+  width:100%; border:1px solid #ddd; background:var(--field); font-size:16px;
+  padding:8px 10px; border-radius:10px; box-sizing:border-box;
+  transition:all .2s ease-in-out;
+}
+
+/* 🔻 added for dropdown */
+select,
+.site-select{
+  width:100%;
+  border:1px solid #ddd;
+  background:var(--field);
+  font-size:16px;
+  padding:8px 36px 8px 12px; /* room for RTL arrow on the left */
+  border-radius:10px;
+  box-sizing:border-box;
+  font-family:'Cairo',sans-serif;
+  transition:all .2s ease-in-out;
+
+  appearance:none; -webkit-appearance:none; -moz-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='gray'%3E%3Cpath d='M7 10l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-size:14px;
+  background-position:left 10px center; /* RTL: arrow on the left */
+  cursor:pointer;
+}
+
+/* hovers/focus */
+input[type="text"]:hover, input[type="date"]:hover,
+select:hover, .site-select:hover{
+  border-color:#b88c5d;
+  background-color:#fff7f0;
+}
+input[type="text"]:focus, input[type="date"]:focus,
+select:focus, .site-select:focus{
+  border-color:var(--brand);
+  background-color:#fff;
+  outline:none;
+  box-shadow:0 0 0 3px rgba(77,44,18,0.15);
+}
+
+.cover-config textarea{
+  width:100%; padding:10px; border:1px solid #ddd; border-radius:10px; background:#fdf4e8;
+  font-size:14px; line-height:1.8; resize:vertical;
+}
+.muted{color:#666;}
+.print-only{display:none;}
+
+table{width:100%; border-collapse:collapse; table-layout:fixed;}
+th,td{border:1px solid #ddd; padding:6px; text-align:center; font-size:12px; word-break:break-word; white-space:pre-wrap;}
+
+/* ===================== الطباعة ===================== */
+@page { size: A4; margin: 0; }
+
+@media print{
+  html, body{
+    margin:0 !important; width:210mm; height:291mm; overflow:visible;
+  }
+
+  thead th{
+    background:#CC9D79 !important; color:#fff !important;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+
+  .toolbar, .card.screen-only, .screen-only{ display:none !important; }
+  .print-only{ display:block !important; }
+
+  .print-page{
+    display:block; position:relative; box-sizing:border-box;
+    width:210mm; height:291mm; margin:0 auto; padding:0; overflow:hidden; background:#fff;
+    break-after:auto; page-break-after:auto;
+  }
+
+  .print-page:nth-child(n+3){ break-before:page; page-break-before:always; }
+
+  .print-page .page-content{
+    padding:var(--page-padding); box-sizing:border-box; width:100%; max-width:100%; overflow-x:hidden;
+  }
+
+  table{ width:100%; border-collapse:collapse; table-layout:fixed; page-break-inside:auto; break-inside:auto; }
+  thead{ display:table-header-group !important; }
+  tfoot{ display:table-footer-group !important; }
+  tbody{ display:table-row-group; }
+  th, td{ font-size:12px; border:1px solid #ccc; page-break-inside:avoid; break-inside:avoid; }
+  img{ max-width:100%; height:auto; }
+
+  .cover-page, .second-page{ position:relative; height:291mm; overflow:hidden; background:none !important; }
+  .cover-page::before{
+    content:""; position:absolute; inset:0; height:calc(100% - 0.2mm); width:calc(100% - 0.2mm);
+    background-image:url('cover-page1.png');
+    background-repeat:no-repeat; background-position:center center; background-size:210mm 288mm; pointer-events:none;
+  }
+  #printRoot > .print-page:nth-child(2){ background-color:#fdf4e8 !important; }
+  #printRoot > .print-page:nth-child(n+3){ background-color:#fdf4e8 !important; }
+  #printRoot > .print-page:nth-child(n+3)::after{
+    content:""; position:absolute; top:10mm; right:var(--page-padding); width:45mm; height:28mm;
+    background:url('logo_sanam.png') no-repeat center / contain;
+  }
+  #printRoot > .print-page:nth-child(n+3) .page-content{ padding-top:calc(var(--page-padding) + 18mm); }
+
+  .table-page .page-content{ padding-bottom:calc(var(--page-padding) + 20mm); }
+  #printRoot > .print-page.table-page .page-content > h2{ margin:var(--page-padding) var(--page-padding) 6mm; }
+
+  /* 👇 الإخفاء الخاص بهذا الجدول فقط (1،7،8،10،11،12) */
+  .attendance-table thead th:nth-child(1),
+  .attendance-table tbody td:nth-child(1),
+  .attendance-table thead th:nth-child(7),
+  .attendance-table tbody td:nth-child(7),
+  .attendance-table thead th:nth-child(8),
+  .attendance-table tbody td:nth-child(8),
+  .attendance-table thead th:nth-child(10),
+  .attendance-table tbody td:nth-child(10),
+  .attendance-table thead th:nth-child(11),
+  .attendance-table tbody td:nth-child(11),
+  .attendance-table thead th:nth-child(12),
+  .attendance-table tbody td:nth-child(12){
+    display:none !important;
+  }
+}
+
+
+/* ====== ترتيب الحقول كما طُلب + توحيد المقاس ====== */
+@media (min-width: 1024px){
+  .input-grid{
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px 16px;
+    grid-template-areas:
+      "subject to from date"
+      "employee site company pages";
+  }
+  .f-date{grid-area:date}
+  .f-from{grid-area:from}
+  .f-to{grid-area:to}
+  .f-subject{grid-area:subject}
+  .f-pages{grid-area:pages}
+  .f-company{grid-area:company}
+  .f-site{grid-area:site}
+  .f-employee{grid-area:employee}
+}
+@media (max-width: 1023px){
+  .input-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px,1fr));
+    gap: 12px 16px;
+  }
+}
+/* توحيد مقاس الحقول */
+.input-line { display:flex; flex-direction:column; }
+.input-line input, .input-line select, .input-line textarea {
+  width: 100%; min-height: 56px; padding: 10px 14px; border-radius: 14px;
+  border: 1px solid #ddd; background: #fdf4e8; font-size: 16px; box-sizing: border-box;
+}
+.input-line textarea { min-height: 120px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="toolbar screen-only">
+      <button id="printBtn">🖨️ طباعة التقرير PDF</button>
+    </div>
+
+    <div class="content">
+      <section class="card screen-only">
+        <h2>إعداد الغلاف</h2>
+        <div class="cover-config">
+          <label>نص على الغلاف:</label>
+          <textarea id="coverText" rows="2" placeholder="تم الإعداد بواسطة …&#10;(اكتب سطرًا ثانيًا هنا)"></textarea>
+          <small class="muted">لن يظهر هذا الحقل عند الطباعة، بل سيُطبع النص مكانه على صورة الغلاف.</small>
+        </div>
+      </section>
+
+      <section class="card screen-only">
+        <div class="header">
+          <img src="assets/logo_sanam.png" alt="شعار سنام الأمن" style="height:85px;" />
+          <img src="assets/logo_rajhi.png" alt="شعار الراجحي" />
+        </div>
+        <h1>تقرير سنام الامن</h1>
+
+        <div class="input-grid">
+          <div class="input-line f-subject">
+            <label>الموضوع</label>
+            <input type="text" id="subject" />
+          </div>
+          <div class="input-line f-to">
+            <label>إلى</label>
+            <input type="date" id="to" />
+          </div>
+          <div class="input-line f-from">
+            <label>من</label>
+            <input type="date" id="from" />
+          </div>
+          <div class="input-line f-date">
+            <label>التاريخ</label>
+            <input type="text" id="date" />
+          </div>
+          <div class="input-line f-employee">
+            <label>اسم الموظف</label>
+            <select id="employeeFilter">
+              <option value="">الكل</option>
+            </select>
+          </div>
+          <div class="input-line f-site">
+            <label>الموقع</label>
+            <select id="site">
+              <option value="">الكل</option>
+              <option value="النسيم 1">النسيم 1</option>
+              <option value="النسيم 4">النسيم 4</option>
+            </select>
+          </div>
+          <div class="input-line f-company">
+            <label>اسم العميل</label>
+            <input type="text" id="company" />
+          </div>
+          <div class="input-line f-pages">
+            <label>عدد الصفحات (تقديري)</label>
+            <input type="text" id="pages" />
+          </div>
+        </div>
+
+        <section class="card screen-only">
+          <h2>نص الخطاب</h2>
+          <p class="muted">استخدم {from} و {to} داخل النص الرئيسي ليتم استبدالهما تلقائيًا عند الطباعة.</p>
+
+          <label class="input-line" style="display:block; margin-bottom:8px;"><strong>النص الرئيسي</strong></label>
+          <textarea id="letterBody" rows="8">
+السلام عليكم ورحمة الله وبركاته، 
+نقدّم لسادتكم هذا تقرير الحضور والأنصراف للفترة من {from} إلى {to}، والمتعلق بتأمين الخدمات النظافة في موقع {موقع الأهلة مول}، وفقاً للعقد المبرم مع شركتكم الموقرة.
+يتضمن التقرير ملخصاً سجل الحضور والانصراف ، وتقييم الأداء، والملاحظات المسجلة خلال الفترة، إلى جانب التوصيات والإجراءات المقترحة لتعزيز مستوى النظافة 
+نسعد بالتعاون المستمر معكم، ونعمل دائماً على تقديم أعلى مستويات الكفاءة والجاهزية لخدمة منشأتكم.
+راجين أن ينال هذا التقرير رضاكم، ومستعدون لتقديم أي توضيحات إضافية حال تطلب الأمر.</textarea>
+
+          <div class="input-line" style="margin-top:10px;">
+            <label><strong>سطر الشكر (سطر واحد)</strong></label>
+            <input type="text" id="thanksLine" value="تفضلوا بقبول فائق الاحترام والتقدير" />
+          </div>
+
+          <div class="input-line" style="margin-top:10px;">
+            <label><strong>تذييل الخطاب</strong> <small class="muted">(كل سطر في سطر منفصل)</small></label>
+            <textarea id="footerBlock" rows="3">فريق شركة سنام الأمن
+الإدارة العليا للعمليات الأمنية</textarea>
+          </div>
+        </section>
+      </section>
+
+      <!-- ملخص الحضور والانصراف -->
+      <section class="card screen-only">
+        <div id="attendancePreview"><!-- table injected --></div>
+      </section>
+
+      <!-- صفحات الطباعة -->
+      <div id="printRoot" class="print-only"></div>
+    </div>
+  </div>
+
+  <script>
+/* ===== إعدادات عامة ===== */
+const apiKey = "AIzaSyBYPUAnYE8GC4Vx32cDYSb8UH6YV-VWmEA";
+const fields = ["date","from","to","subject","pages","company","site","coverText","letterBody","thanksLine","footerBlock"];
+
+/* ===== جلب بيانات Google Sheets (الحضور) ===== */
+async function fetchSheetData(sheetId, range){
+  try{
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}?key=${apiKey}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    return data.values && data.values.length ? data.values : [["لا توجد بيانات"]];
+  }catch(e){
+    return [["خطأ في الاتصال بالجدول"]];
+  }
+}
+
+/* ===== أدوات التاريخ ===== */
+function parseDateCell(v){
+  const m=(v||'').match(/\d{4}[-\/]\d{2}[-\/]\d{2}|\d{2}[-\/]\d{2}[-\/]\d{4}/);
+  return m ? new Date(m[0].replace(/-/g,'/')) : null;
+}
+function filterByDateRange(data, fromDateStr, toDateStr, colIndex=0){
+  const f=new Date(fromDateStr), t=new Date(toDateStr);
+  if(isNaN(f)||isNaN(t)) return data;
+  return data.filter((row,idx)=>{
+    if(idx===0) return true;
+    const d=parseDateCell(row[colIndex]||"");
+    return d && d>=f && d<=t;
+  });
+}
+
+/* ===== فلترة الموقع (يدعم نص/Dropdown) ===== */
+function normalizeSite(s){
+  if (s == null) return '';
+  const arabicDigits = {'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9'};
+  const replaced = String(s).replace(/[٠-٩]/g, d => arabicDigits[d] || d);
+  return replaced.trim().replace(/\s+/g,' ').toLowerCase();
+}
+// افتراضيًا عمود الموقع = E (index 4) — عدّل لو مختلف
+function filterBySiteFixedColumn(data, siteName, colIndex=4){
+  if (!siteName) return data;
+  if (!data || !data.length) return data;
+  const wanted = normalizeSite(siteName);
+  return data.filter((row, r) => {
+    if (r === 0) return true;
+    const cell = normalizeSite(row[colIndex] ?? '');
+    return cell === wanted;
+  });
+}
+
+
+/* ===== العثور على عمود الاسم واستخراج الأسماء الفريدة ===== */
+function findNameColumn(headers){
+  // يحاول العثور على عمود يحتوي على "الاسم" أو "اسم الموظف" أو "الاسم الرباعي"
+  const patterns = [/\bالاسم\b/i,/اسم الموظف/i,/الاسم الرباعي/i];
+  for (let i=0;i<headers.length;i++){
+    const h = String(headers[i]||'').trim();
+    if (patterns.some(re => re.test(h))) return i;
+  }
+  // افتراضي: B (index 1) إن لم نجد
+  return 1;
+}
+function uniqueEmployeeNames(values){
+  if (!values || values.length<2) return [];
+  const headers = values[0];
+  const nameIdx = findNameColumn(headers);
+  const set = new Set();
+  for (let r=1;r<values.length;r++){
+    const name = String((values[r]||[])[nameIdx]||'').trim();
+    if (name) set.add(name);
+  }
+  return Array.from(set).sort((a,b)=>a.localeCompare(b,'ar'));
+}
+function filterByEmployeeName(values, selectedName){
+  if (!selectedName) return values;
+  if (!values || values.length<2) return values;
+  const headers = values[0];
+  const nameIdx = findNameColumn(headers);
+  const result = [headers];
+  for (let r=1;r<values.length;r++){
+    const row = values[r]||[];
+    if (String(row[nameIdx]||'').trim() === selectedName) result.push(row);
+  }
+  return result;
+}
+function populateEmployeeFilter(values){
+  const sel = document.getElementById('employeeFilter');
+  if (!sel) return;
+  const chosen = sel.value;
+  const names = uniqueEmployeeNames(values);
+  sel.innerHTML = '<option value="">الكل</option>' + names.map(n=>`<option value="${n}">${n}</option>`).join('');
+  // لو كان المختار سابقاً مازال موجود، احتفظ به
+  if (chosen && names.includes(chosen)) sel.value = chosen;
+}
+/* ===== تحويل الأوقات إلى 12 ساعة (ص/م) داخل أي نص ===== */
+function convertTimesInText(text){
+  if (text == null) return text;
+  let s = String(text);
+  const hasAmPm = /\b(AM|PM|am|pm|ص|م)\b/.test(s);
+  const re = /(\b[01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?/g;
+  return s.replace(re, (full, hh, mm, ss) => {
+    if (hasAmPm) return full;
+    const h = parseInt(hh,10);
+    const period = (h < 12) ? 'ص' : 'م';
+    let h12 = h % 12; if (h12 === 0) h12 = 12;
+    return `${h12}:${mm}${ss ? ':'+ss : ''} ${period}`;
+  });
+}
+
+/* ===== بناء جدول: padding للصف + "O" للأعمدة 9/10 + تحويل 12 ساعة ===== */
+function buildTableHTML(values, className){
+  if (!values || !values.length) return '<p>لا توجد بيانات</p>';
+  const headers = values[0];
+  const cls = className ? ` class="${className}"` : '';
+  let h = `<table${cls}><thead><tr>` +
+          headers.map(h => `<th>${h}</th>`).join('') +
+          `</tr></thead><tbody>`;
+
+  for (let i = 1; i < values.length; i++) {
+    const row = values[i] || [];
+    // مهم: padding لطول الهيدر لأن Google Sheets قد يحذف النهاية الفارغة
+    const rowPadded = Array.from({length: headers.length}, (_, j) => row[j] ?? '');
+
+    h += '<tr>' + rowPadded.map((cell, colIdx) => {
+      let val = (cell == null || String(cell).trim() === '') ? '' : String(cell).trim();
+
+      // الأعمدة 9 و10 (index 8,9) → "O" إذا فاضية (لنفس منطق الواجهة الأولى)
+      if (className === 'attendance-table' && (colIdx === 8 || colIdx === 9)) {
+        if (!val) val = 'O';
+      }
+
+      // باقي الأعمدة: لو ما زالت فاضية → '-'
+      if (!val) return `<td>-</td>`;
+
+      // تحويل أوقات 24h داخل النص إلى 12h (ص/م)
+      const shown = convertTimesInText(val);
+      return `<td>${shown}</td>`;
+    }).join('') + '</tr>';
+  }
+
+  h += '</tbody></table>';
+  return h;
+}
+
+/* ===== عنوان الصفحة ===== */
+function updateDocumentTitleWithDateRange(){
+  const f=document.getElementById('from').value;
+  const t=document.getElementById('to').value;
+  const s=document.getElementById('subject').value||'تقرير الحضور والانصراف';
+  document.title=(f&&t)?`${s} - من ${f} إلى ${t}`:s;
+}
+
+/* ===== التحميل والعرض ===== */
+async function loadAndRender(){
+  const fromDate=document.getElementById('from').value;
+  const toDate  =document.getElementById('to').value;
+  const siteVal = document.getElementById('site')?.value || '';
+
+  const raw = await fetchSheetData('1LMeDt4PSeUBUA1IFhBoHSIgnTK-XzLcxIbN4hT6Y7fc','البيانات!A2:L');
+
+  // 1) فلترة تاريخ
+  const dated = (fromDate&&toDate)?filterByDateRange(raw,fromDate,toDate,0):raw;
+
+  // 2) فلترة موقع (العمود E = index 4 افتراضياً)
+  const bySite = filterBySiteFixedColumn(dated, siteVal, 4);
+
+  // 2.5) ملء قائمة الأسماء حسب البيانات الحالية
+  populateEmployeeFilter(bySite);
+
+  // 2.6) فلترة حسب اسم الموظف (إن اختير)
+  const employeeName = document.getElementById('employeeFilter')?.value || '';
+  const byEmployee = filterByEmployeeName(bySite, employeeName);
+
+  // 3) العرض
+  document.getElementById('attendancePreview').innerHTML = buildTableHTML(byEmployee, 'attendance-table');
+
+  // 4) الطباعة
+  buildPrintPages(byEmployee);
+  updatePagesFieldFromDOM();
+  syncPrintFields();
+}
+
+/* ===== عدّ الصفحات ===== */
+function updatePagesFieldFromDOM(){
+  const root  = document.getElementById('printRoot');
+  const field = document.getElementById('pages');
+  const span  = document.getElementById('print_pages');
+  if (!root || !field) return;
+  const count = root.querySelectorAll('.print-page').length;
+  field.value = count; if (span) span.textContent = count;
+}
+
+/* ===== بناء صفحات الطباعة (الغلاف + المعلومات + جدول واحد) ===== */
+function buildPrintPages(values){
+  const root=document.getElementById('printRoot');
+  root.innerHTML='';
+
+  const coverTextSaved=document.getElementById('coverText').value||'';
+
+  // الغلاف
+  const cover=document.createElement('section');
+  cover.className='print-page cover-page';
+  const cText=document.createElement('div');
+  Object.assign(cText.style,{position:'absolute', bottom:'90px', left:'30px', color:'#fff', fontSize:'16px', fontWeight:'700', whiteSpace:'pre-wrap', width:'300px'});
+  cText.textContent=coverTextSaved; cover.appendChild(cText); root.appendChild(cover);
+
+  // صفحة المعلومات
+  const info=document.createElement('section');
+  info.className='print-page second-page';
+  info.innerHTML=`
+    <div class="page-content">
+      <div class="header">
+         <img src="assets/logo_sanam.png" alt="شعار سنام الأمن" style="height: 85px;" />
+         <img src="assets/logo_rajhi.png" alt="شعار الراجحي" />
+      </div>
+      <h1>تقرير الحضور والانصراف</h1>
+      <div style="font-size:14px;line-height:1.8">
+        <p><strong>التاريخ:</strong> <span id="print_date"></span></p>
+        <p><strong>الفترة:</strong> من <span id="print_from"></span> إلى <span id="print_to"></span></p>
+        <p><strong>الموضوع:</strong> <span id="print_subject"></span></p>
+        <p><strong>عدد الصفحات:</strong> <span id="print_pages"></span></p>
+        <p><strong>اسم العميل:</strong> <span id="print_company"></span></p>
+        <p><strong>الموقع:</strong> <span id="print_site"></span></p>
+        <div id="print_letterBlock" style="margin-top:12px"></div>
+      </div>
+    </div>`;
+  root.appendChild(info);
+
+  // صفحات الجدول
+  appendPaginatedTableMeasured(root, values, 'ملخص الحضور والانصراف', 20, 'attendance-table');
+}
+
+/* ===== تقسيم الجدول إلى صفحات بطباعة مقاسة ===== */
+function appendPaginatedTableMeasured(root, values, title, extraBottomMm=20, className){
+  const pages = paginateValuesMeasured(values, title, extraBottomMm);
+
+  if (!pages.length) {
+    const empty = document.createElement('section');
+    empty.className = 'print-page table-page';
+    empty.innerHTML = `<div class="page-content"><h2>${title}</h2><p>لا توجد بيانات.</p></div>`;
+    root.appendChild(empty);
+    return;
+  }
+
+  pages.forEach((vals, idx) => {
+    const sec = document.createElement('section');
+    sec.className = 'print-page table-page';
+    const tableHTML = buildTableHTML(vals, className);
+    sec.innerHTML = `<div class="page-content">${idx === 0 ? ('<h2>' + title + '</h2>') : ''}${tableHTML}</div>`;
+    root.appendChild(sec);
+  });
+}
+function paginateValuesMeasured(allValues, title, extraBottomMm = 20){
+  if (!allValues || !allValues.length) return [];
+  const headers = allValues[0];
+  const rows = allValues.slice(1);
+
+  const chunks = [];
+  let i = 0, firstPage = true;
+
+  while (i < rows.length) {
+    const fit = measureRowsFit(headers, rows.slice(i), firstPage, title, extraBottomMm);
+    const rowsThisPage = Math.max(1, fit);
+    chunks.push([headers, ...rows.slice(i, i + rowsThisPage)]);
+    i += rowsThisPage;
+    firstPage = false;
+  }
+  return chunks;
+}
+function measureRowsFit(headers, candidateRows, includeTitle, title, extraBottomMm){
+  const page = document.createElement('div');
+  page.style.cssText = `position:absolute; left:-10000px; top:0; width:210mm; height:297mm; box-sizing:border-box; background:#fff; overflow:hidden; font-family:'Cairo', sans-serif;`;
+
+  const pagePaddingStr = getComputedStyle(document.documentElement).getPropertyValue('--page-padding').trim() || '20mm';
+  const padMm = parseFloat(pagePaddingStr) || 20;
+  const padPx = mm2px(padMm);
+  const extraPx = mm2px(extraBottomMm);
+
+  const content = document.createElement('div');
+  content.style.cssText = `box-sizing:border-box; width:100%; height:100%; padding:${padPx}px; padding-bottom:${padPx + extraPx}px;`;
+  page.appendChild(content);
+
+  if (includeTitle) {
+    const h2 = document.createElement('h2');
+    h2.style.cssText = `margin:8px 0; text-align:center; font-size:16px;`;
+    h2.textContent = title || '';
+    content.appendChild(h2);
+  }
+
+  const table = document.createElement('table');
+  table.style.cssText = 'width:100%; border-collapse:collapse; table-layout:fixed;';
+  const thead = document.createElement('thead');
+  const hr = document.createElement('tr');
+  headers.forEach(h => {
+    const th = document.createElement('th');
+    th.textContent = h ?? '';
+    th.style.cssText = 'border:1px solid #ccc; padding:6px; font-size:12px; word-break:break-word; white-space:pre-wrap;';
+    hr.appendChild(th);
+  });
+  thead.appendChild(hr); table.appendChild(thead);
+  const tbody = document.createElement('tbody'); table.appendChild(tbody);
+  content.appendChild(table);
+
+  document.body.appendChild(page);
+
+  const safeHeight = page.clientHeight;
+  let fit = 0;
+  for (let r = 0; r < candidateRows.length; r++) {
+    const tr = document.createElement('tr');
+    candidateRows[r].forEach(cell => {
+      const td = document.createElement('td');
+      td.textContent = (cell ?? '').toString();
+      td.style.cssText = 'border:1px solid #ccc; padding:6px; font-size:12px; word-break:break-word; white-space:pre-wrap;';
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+
+    if (page.scrollHeight > safeHeight) { tbody.removeChild(tr); break; } else { fit++; }
+  }
+
+  document.body.removeChild(page);
+  return fit;
+}
+function mm2px(mm){ return mm * (96 / 25.4); }
+
+/* ===== مزامنة الحقول ===== */
+function syncPrintFields(){
+  ['date','from','to','subject','pages','company','site'].forEach(id=>{
+    const el=document.getElementById(id);
+    const span=document.getElementById('print_'+id);
+    if(el && span) span.textContent=el.value||'';
+  });
+
+  const out = document.getElementById('print_letterBlock');
+  const bodyEl   = document.getElementById('letterBody');
+  const thanksEl = document.getElementById('thanksLine');
+  const footEl   = document.getElementById('footerBlock');
+  if(!out) return;
+
+  const fromVal=document.getElementById('from').value||'____';
+  const toVal  =document.getElementById('to').value  ||'____';
+
+  const bodyRaw = (bodyEl?.value || '').replaceAll('{from}', fromVal).replaceAll('{to}', toVal);
+
+  const toParas = (txt, align, bold=false) =>
+    (txt || '').split(/\r?\n/).map(line=>{
+      const t=line.trim(); if(!t) return `<p dir="rtl">&nbsp;</p>`;
+      const alignCss  = align ? `text-align:${align};` : '';
+      const weightCss = bold ? 'font-weight:700;' : '';
+      return `<p dir="rtl" style="${alignCss}${weightCss}">${t}</p>`;
+    }).join('');
+
+  let html = '';
+  html += toParas(bodyRaw, '');
+  const thanks = (thanksEl?.value || '').trim(); if(thanks){ html += `<p dir="rtl" style="text-align:center;">${thanks}</p>`; }
+  const footer = footEl?.value || ''; if(footer){ html += toParas(footer, 'left', true); }
+  out.innerHTML = html;
+}
+
+/* ===== تهيئة ===== */
+window.addEventListener('load', ()=>{
+  fields.forEach(id=>{
+    const el=document.getElementById(id);
+    const saved=localStorage.getItem('report_attendance_'+id);
+    if(saved && el) el.value=saved;
+    if(el){
+      el.addEventListener('input', ()=>{
+        localStorage.setItem('report_attendance_'+id, el.value);
+        updateDocumentTitleWithDateRange();
+        syncPrintFields();
+
+        // تحديث مباشر عند تعديل الموقع (سواء input أو select)
+        if (id === 'site') {
+          loadAndRender();
+        }
+      });
+      if(id==='from' || id==='to'){
+        el.addEventListener('change', ()=>{
+          loadAndRender();
+          updateDocumentTitleWithDateRange();
+        });
+      }
+    }
+  });
+
+  loadAndRender();
+  syncPrintFields();
+  updateDocumentTitleWithDateRange();
+});
+
+/* ===== طباعة ===== */
+/* ===== طباعة (باتش مستقر) ===== */
+function buildPagesFromPreview() {
+  const previewTable = document.querySelector('#attendancePreview table');
+  const values = previewTable ? tableToValues(previewTable) : [];
+  buildPrintPages(values);
+  finalizePrintPages();
+  updatePagesFieldFromDOM();
+  syncPrintFields();
+}
+
+// نعطي المتصفح وقت كافي ليعيد التدفق قبل أمر الطباعة
+function printAfterLayout() {
+  // 1) إجبار إعادة التدفق
+  document.body.offsetHeight; // reflow
+
+  // 2) دورتين RAF + مهلة قصيرة (موثوق أكثر من setTimeout واحد)
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        window.print();
+      }, 0);
+    });
+  });
+}
+
+document.getElementById('printBtn').addEventListener('click', () => {
+  buildPagesFromPreview();
+  printAfterLayout();
+});
+
+// في beforeprint (لو فتح المستخدم معاينة من المتصفح) نضمن بناء الصفحات
+window.addEventListener('beforeprint', () => {
+  buildPagesFromPreview();
+});
+
+
+/* ===== تحويل جدول المعاينة إلى values ===== */
+function tableToValues(table){
+  const values=[];
+  const headers=Array.from(table.tHead?.rows?.[0]?.cells||[]).map(th=>th.textContent.trim());
+  if(headers.length) values.push(headers);
+  const rows=Array.from(table.tBodies?.[0]?.rows||[]);
+  rows.forEach(tr=>{ values.push(Array.from(tr.cells).map(td=>td.textContent)); });
+  return values;
+}
+
+/* ===== تنظيف صفحات الطباعة ===== */
+function finalizePrintPages(){
+  const root = document.getElementById('printRoot');
+  const pages = Array.from(root.querySelectorAll('.print-page'));
+  if (pages.length) { const last = pages[pages.length - 1]; last.style.breakAfter = 'auto'; last.style.pageBreakAfter = 'auto'; }
+  pages.forEach(p => {
+    const hasContent = p.classList.contains('cover-page') || p.classList.contains('second-page') || p.querySelector('table, img, h1, h2, p, .page-content *');
+    if (!hasContent) p.remove();
+  });
+}
+
+
+
+/* ===== إعادة العرض عند تغيير اختيار اسم الموظف ===== */
+document.addEventListener('change', (e)=>{
+  if (e.target && e.target.id === 'employeeFilter'){
+    try { loadAndRender(); } catch(_) {}
+  }
+});
+
+  </script>
+</body>
+</html>
